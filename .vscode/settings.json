@@ -1,0 +1,26 @@
+{    
+    "clangd.path": "clangd",
+    "clangd.arguments": [
+        "--header-insertion=never",
+        "--compile-commands-dir=${workspaceFolder}/build",
+        "--query-driver=clang++"
+    ],
+
+    "cmake.sourceDirectory": "${workspaceFolder}",
+    "cmake.buildDirectory": "${workspaceFolder}/build",
+    "cmake.generator": "Ninja",
+    "cmake.configureOnOpen": true,
+    "cmake.preferredGenerators": [
+        { "name": "Ninja", "platform": "", "toolset": "" }
+    ],
+    "cmake.configureSettings": {
+        "CMAKE_C_COMPILER": "clang",
+        "CMAKE_CXX_COMPILER": "clang++",
+        "LLVM_HOME": "${env:LLVM_HOME}",
+        "CMAKE_CXX_STANDARD": "20"
+    },
+
+    "editor.defaultFormatter": "llvm-vs-code-extensions.vscode-clangd",
+    "editor.formatOnSave": true,
+    "editor.tabSize": 2
+}

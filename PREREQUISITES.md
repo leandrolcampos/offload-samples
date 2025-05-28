@@ -86,7 +86,7 @@ Below is a simple recipe to get a release build of the LLVM subprojects _Offload
 ```bash
 cd llvm-project
 cmake -S llvm -B build -G Ninja \
-  -DLLVM_ENABLE_PROJECTS="clang;lld" \
+  -DLLVM_ENABLE_PROJECTS="clang;clang-tools-extra;lld" \
   -DLLVM_ENABLE_RUNTIMES="openmp;offload;libc" \
   -DCMAKE_BUILD_TYPE=Release \
   -DLLVM_ENABLE_ASSERTIONS=ON \
@@ -100,7 +100,7 @@ cmake -S llvm -B build -G Ninja \
 
 | CMake flag | Rationale |
 | ---------- | --------- |
-| `LLVM_ENABLE_PROJECTS="clang;lld"` | Provide a recent Clang to compile the GPU C library and LLD to link GPU executables. |
+| `LLVM_ENABLE_PROJECTS="clang;clang-tools-extra;lld"` | Provide a recent Clang to compile the GPU C library, `clangd` language server to work with Visual Studio Code, and LLD to link GPU executables. |
 | `LLVM_ENABLE_RUNTIMES="openmp;offload;libc"` | Include OpenMP (required by Offload), Offload itself, and C library for the host. |
 | `LLVM_ENABLE_ASSERTIONS=ON` | Keep assertion checks even in a release build (see _Note_ below). |
 | `LLVM_PARALLEL_LINK_JOBS=1` | Limit concurrent link jobs to avoid OOM issues. (see _Important_ below). |
@@ -132,15 +132,21 @@ ninja -C build/runtimes/runtimes-bins offload.unittests
 ```
 
 Finally, run the tests for the GPU C library:
+
 * All tests:
+
     ```bash
     ninja -C build check-libc-nvptx64-nvidia-cuda -j1
     ```
+
 * Hermetic tests only:
+
     ```bash
     ninja -C build/runtimes/runtimes-nvptx64-nvidia-cuda-bins libc-hermetic-tests -j1
     ```
+
 * Integration tests only:
+
     ```bash
     ninja -C build/runtimes/runtimes-nvptx64-nvidia-cuda-bins libc-integration-tests -j1
     ```
