@@ -13,6 +13,14 @@ set(CMAKE_BUILD_RPATH "${LLVM_LIBDIR}")
 
 list(APPEND CMAKE_PREFIX_PATH "${LLVM_HOME}")
 
+set(OLS_DEVICE_CODE_PATH "${CMAKE_BINARY_DIR}/device_code")
+file(MAKE_DIRECTORY "${OLS_DEVICE_CODE_PATH}")
+
+set_property(
+  GLOBAL
+  PROPERTY OLS_DEVICE_CODE_PATH "${OLS_DEVICE_CODE_PATH}"
+)
+
 find_library(
   LLVMOffload
   NAMES LLVMOffload
@@ -22,3 +30,4 @@ find_library(
 
 add_subdirectory(common)
 add_subdirectory(samples/device_query)
+add_subdirectory(samples/simple_kernel)
