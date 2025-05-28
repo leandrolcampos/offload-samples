@@ -18,7 +18,7 @@ inline void checkFailureHandler(const char *ResultExpr, ol_result_t Result,
   std::cerr << "OLS_CHECK FAILED: (" << ResultExpr << ") != OL_SUCCESS\n"
             << "  Error Code: " << Result->Code << '\n'
             << "  Details: "
-            << (Result->Details ? Result->Details : "No details provided.")
+            << (Result->Details ? Result->Details : "No details provided")
             << '\n'
             << "  Location: " << File << ":" << Line << '\n'
             << "  Function: " << FuncName << '\n';
@@ -39,6 +39,8 @@ inline void checkFailureHandler(const char *ResultExpr, ol_result_t Result,
 struct Device {
   ol_device_handle_t Handle;
   bool IsHost;
+  bool IsCUDA{false};
+  bool IsAMDGPU{false};
 };
 
 struct DeviceInfo {
@@ -49,8 +51,11 @@ struct DeviceInfo {
 
 const std::vector<Device> &getDevices();
 
-const ols::Device &getHostDevice();
+const Device &getHostDevice();
 
 DeviceInfo getDeviceInfo(const Device &TargetDevice);
+
+bool loadDeviceBinary(const std::string &BinaryName, const Device &TargetDevice,
+                      std::vector<char> &BinaryOut);
 
 } // namespace ols
