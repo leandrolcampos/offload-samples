@@ -1,0 +1,11 @@
+# Makes clangd use the same include paths and GPU target flags as the
+# real build, enabling accurate diagnostics and completion for device
+# code in samples/*/device_code/.
+If:
+  PathMatch: samples/.*/device_code/.*\.(c|h|cpp|hpp)
+
+CompileFlags:
+  Add: [
+    "-I${LLVM_HOME}/include",
+    "--target=nvptx64-nvidia-cuda"
+  ]
