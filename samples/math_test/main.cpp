@@ -82,17 +82,6 @@ uint64_t computeUlpDistance(FloatType X, FloatType Y) {
     return std::numeric_limits<uint64_t>::max();
   }
 
-  const bool XIsInf = std::isinf(X);
-  const bool YIsInf = std::isinf(Y);
-
-  if (XIsInf && YIsInf) {
-    // If execution reaches here, X != Y, so they must be opposite infinities
-    return std::numeric_limits<uint64_t>::max();
-  }
-  if (XIsInf || YIsInf) {
-    return std::numeric_limits<uint64_t>::max();
-  }
-
   constexpr StorageType SignMask = FPUtils<FloatType>::SignMask;
 
   // Linearise FloatType values into an ordered unsigned space:
@@ -117,27 +106,25 @@ int main() {
   constexpr float Inf = std::numeric_limits<float>::infinity();
   constexpr float MinDenorm = std::numeric_limits<float>::denorm_min();
   constexpr float MaxFinite = std::numeric_limits<float>::max();
-  constexpr float X = 1.0f;
-  const float NextAfterX = std::nextafter(X, Inf);
+  const float NextAfterOne = std::nextafter(1.0f, Inf);
 
   // UlpError: 0
-  std::cout << "ulp(X, X) = " << computeUlpDistance(X, X)
-            << '\n';
+  std::cout << "ulp(1.0, 1.0) = " << computeUlpDistance(1.0f, 1.0f) << '\n';
 
   // UlpError: 0
-  std::cout << "ulp(+0.0, +0.0) = " << computeUlpDistance(+0.0, +0.0) << '\n';
+  std::cout << "ulp(+0.0, +0.0) = " << computeUlpDistance(+0.0f, +0.0f) << '\n';
 
   // UlpError: 0
-  std::cout << "ulp(-0.0, -0.0) = " << computeUlpDistance(-0.0, -0.0) << '\n';
-  
+  std::cout << "ulp(-0.0, -0.0) = " << computeUlpDistance(-0.0f, -0.0f) << '\n';
+
   // UlpError: 1
-  std::cout << "ulp(+0.0, -0.0) = " << computeUlpDistance(+0.0, -0.0) << '\n';
+  std::cout << "ulp(-0.0, +0.0) = " << computeUlpDistance(-0.0f, +0.0f) << '\n';
 
   // UlpError: 0
   std::cout << "ulp(NaN, NaN) = " << computeUlpDistance(NaN, NaN) << '\n';
 
   // UlpError: UINT64_MAX
-  std::cout << "ulp(NaN, X) = " << computeUlpDistance(NaN, X) << '\n';
+  std::cout << "ulp(NaN, 1.0) = " << computeUlpDistance(NaN, 1.0f) << '\n';
 
   // UlpError: 1
   std::cout << "ulp(Inf, MaxFinite) = " << computeUlpDistance(Inf, MaxFinite)
@@ -148,11 +135,15 @@ int main() {
             << computeUlpDistance(-Inf, -MaxFinite) << '\n';
 
   // UlpError: (Huge, but < UINT64_MAX)
+  std::cout << "ulp(-MaxFinite, MaxFinite) = "
+            << computeUlpDistance(-MaxFinite, MaxFinite) << '\n';
+
+  // UlpError: (Huge, but < UINT64_MAX)
   std::cout << "ulp(-Inf, Inf) = " << computeUlpDistance(-Inf, Inf) << '\n';
 
   // UlpError: 1
-  std::cout << "ulp(Finite, NextFinite) = "
-            << computeUlpDistance(X, NextAfterX) << '\n';
+  std::cout << "ulp(1.0, NextAfterOne) = "
+            << computeUlpDistance(1.0f, NextAfterOne) << '\n';
 
   // UlpError: 2
   std::cout << "ulp(-MinDenorm, MinDenorm) = "
