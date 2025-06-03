@@ -61,6 +61,14 @@ uint64_t computeUlpDistance(FloatType X, FloatType Y) {
   using StorageType = typename FPUtils<FloatType>::StorageType;
 
   if (X == Y) {
+    if (std::signbit(X) != std::signbit(Y)) [[unlikely]] {
+      // When X == Y, different sign bits imply that X and Y are +0.0 and -0.0
+      // (in any order). Since we want to treat them as unequal in the context
+      // of accuracy testing of mathematical functions, we return the smallest
+      // non-zero value.
+      return 1;
+    }
+
     return 0;
   }
 
@@ -105,17 +113,50 @@ uint64_t computeUlpDistance(FloatType X, FloatType Y) {
 }
 
 int main() {
-  float X = 1.0f + std::numeric_limits<float>::epsilon();
-  float Y = 1.0f;
+  constexpr float NaN = std::numeric_limits<float>::quiet_NaN();
+  constexpr float Inf = std::numeric_limits<float>::infinity();
+  constexpr float MinDenorm = std::numeric_limits<float>::denorm_min();
+  constexpr float MaxFinite = std::numeric_limits<float>::max();
+  constexpr float X = 1.0f;
+  const float NextAfterX = std::nextafter(X, Inf);
+
+  // UlpError: 0
+  std::cout << "ulp(X, X) = " << computeUlpDistance(X, X)
+            << '\n';
+
+  // UlpError: 0
+  std::cout << "ulp(+0.0, +0.0) = " << computeUlpDistance(+0.0, +0.0) << '\n';
+
+  // UlpError: 0
+  std::cout << "ulp(-0.0, -0.0) = " << computeUlpDistance(-0.0, -0.0) << '\n';
+  
+  // UlpError: 1
+  std::cout << "ulp(+0.0, -0.0) = " << computeUlpDistance(+0.0, -0.0) << '\n';
+
+  // UlpError: 0
+  std::cout << "ulp(NaN, NaN) = " << computeUlpDistance(NaN, NaN) << '\n';
+
+  // UlpError: UINT64_MAX
+  std::cout << "ulp(NaN, X) = " << computeUlpDistance(NaN, X) << '\n';
 
   // UlpError: 1
-  std::cout << "UlpError: " << computeUlpDistance(X, Y) << '\n';
+  std::cout << "ulp(Inf, MaxFinite) = " << computeUlpDistance(Inf, MaxFinite)
+            << '\n';
 
-  X = std::numeric_limits<float>::denorm_min();
-  Y = -X;
+  // UlpError: 1
+  std::cout << "ulp(-Inf, -MaxFinite) = "
+            << computeUlpDistance(-Inf, -MaxFinite) << '\n';
+
+  // UlpError: (Huge, but < UINT64_MAX)
+  std::cout << "ulp(-Inf, Inf) = " << computeUlpDistance(-Inf, Inf) << '\n';
+
+  // UlpError: 1
+  std::cout << "ulp(Finite, NextFinite) = "
+            << computeUlpDistance(X, NextAfterX) << '\n';
 
   // UlpError: 2
-  std::cout << "UlpError: " << computeUlpDistance(X, Y) << '\n';
+  std::cout << "ulp(-MinDenorm, MinDenorm) = "
+            << computeUlpDistance(-MinDenorm, MinDenorm) << '\n';
 
   return 0;
 }
