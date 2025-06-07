@@ -37,10 +37,10 @@ inline void checkFailureHandler(const char *ResultExpr, ol_result_t Result,
   } while (false)
 
 struct Device {
-  ol_device_handle_t Handle;
-  bool IsHost;
-  bool IsCUDA{false};
-  bool IsAMDGPU{false};
+  ol_device_handle_t Handle = nullptr;
+  bool IsHost = false;
+  bool IsCUDA = false;
+  bool IsAMDGPU = false;
 };
 
 struct DeviceInfo {
