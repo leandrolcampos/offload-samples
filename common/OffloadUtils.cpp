@@ -124,20 +124,10 @@ void ols::loadDeviceBinary(const std::string &BinaryName,
                            const ols::Device &TargetDevice,
                            std::vector<char> &BinaryOut) {
 
-  ol_platform_handle_t Platform = nullptr;
-  OL_CHECK(olGetDeviceInfo(TargetDevice.Handle, OL_DEVICE_INFO_PLATFORM,
-                           sizeof(ol_platform_handle_t), &Platform));
-
-  ol_platform_backend_t Backend;
-  OL_CHECK(olGetPlatformInfo(Platform, OL_PLATFORM_INFO_BACKEND,
-                             sizeof(Backend), &Backend));
-
   std::string FileExtension;
-  switch (Backend) {
-  case OL_PLATFORM_BACKEND_CUDA:
+  if (TargetDevice.IsCUDA) {
     FileExtension = ".nvptx64.bin";
-    break;
-  default:
+  } else {
     // TODO: Add support for AMDGPU
     FATAL_ERROR("Unsupported backend for a device binary");
   }
