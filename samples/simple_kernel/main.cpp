@@ -4,25 +4,20 @@
 
 #define GROUP_SIZE_X 8
 
-const ols::Device &getCUDADevice() {
+static const ols::Device &getCUDADevice() {
   // Select the first CUDA device
   for (const auto &CurrentDevice : ols::getDevices())
     if (CurrentDevice.IsCUDA)
       return CurrentDevice;
 
-  std::cerr << "FATAL ERROR: In function " << __func__ << " (" << __FILE__
-            << ":" << __LINE__ << "): "
-            << "No CUDA devices found" << '\n';
-  std::exit(EXIT_FAILURE);
+  FATAL_ERROR("No CUDA devices found");
 }
 
 int main() {
   const auto &CUDADevice = getCUDADevice();
 
   std::vector<char> DeviceBinary;
-  if (!loadDeviceBinary("simple_kernel", CUDADevice, DeviceBinary)) {
-    return EXIT_FAILURE;
-  }
+  loadDeviceBinary("simple_kernel", CUDADevice, DeviceBinary);
 
   ol_program_handle_t Program = nullptr;
   OL_CHECK(olCreateProgram(CUDADevice.Handle, DeviceBinary.data(),
@@ -56,9 +51,9 @@ int main() {
                           sizeof(Args), &LaunchArgs, nullptr));
 
   int *Data = (int *)Buffer;
-  for (int i = 0; i < GROUP_SIZE_X; ++i) {
-    std::cout << "Data[" << i << "] = " << Data[i]
-              << (Data[i] == i ? " (correct)" : " (incorrect)") << '\n';
+  for (int Idx = 0; Idx < GROUP_SIZE_X; ++Idx) {
+    std::cout << "Data[" << Idx << "] = " << Data[Idx]
+              << (Data[Idx] == Idx ? " (correct)" : " (incorrect)") << '\n';
   }
 
   OL_CHECK(olMemFree(Buffer));

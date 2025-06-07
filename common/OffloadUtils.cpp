@@ -6,7 +6,7 @@
 #include <iostream>
 
 // The static 'Wrapper' instance ensures olInit() is called once at program
-// startup and olShutDown() is called once at program termination.
+// startup and olShutDown() is called once at program termination
 struct OffloadInitWrapper {
   OffloadInitWrapper() { OL_CHECK(olInit()); }
   ~OffloadInitWrapper() { OL_CHECK(olShutDown()); }
@@ -18,7 +18,7 @@ const std::vector<ols::Device> &ols::getDevices() {
   static std::vector<ols::Device> Devices = []() -> std::vector<ols::Device> {
     std::vector<ols::Device> TempDevices;
 
-    // Discovery every device that is not the host.
+    // Discovery every device that is not the host
     const auto *const ResultFromIterate = olIterateDevices(
         [](ol_device_handle_t DeviceHandle, void *Data) {
           ol_platform_handle_t PlatformHandle = nullptr;
@@ -77,10 +77,7 @@ ol_device_handle_t ols::getHostHandle() {
   }();
 
   if (!HostHandle) {
-    std::cerr << "FATAL ERROR: In function " << __func__ << " (" << __FILE__
-              << ":" << __LINE__ << "): "
-              << "The host device was not found" << '\n';
-    std::exit(EXIT_FAILURE);
+    FATAL_ERROR("The host was not found");
   }
   return HostHandle;
 }
@@ -123,7 +120,7 @@ ols::DeviceInfo ols::getDeviceInfo(const Device &TargetDevice) {
 
 const std::string DeviceBinsDirectory = DEVICE_CODE_PATH;
 
-bool ols::loadDeviceBinary(const std::string &BinaryName,
+void ols::loadDeviceBinary(const std::string &BinaryName,
                            const ols::Device &TargetDevice,
                            std::vector<char> &BinaryOut) {
 
@@ -141,9 +138,8 @@ bool ols::loadDeviceBinary(const std::string &BinaryName,
     FileExtension = ".nvptx64.bin";
     break;
   default:
-    // TODO: Add support for AMDGPU and host CPU
-    std::cerr << "Unsupported backend for a device binary\n";
-    return false;
+    // TODO: Add support for AMDGPU
+    FATAL_ERROR("Unsupported backend for a device binary");
   }
 
   namespace fs = std::filesystem;
@@ -151,20 +147,16 @@ bool ols::loadDeviceBinary(const std::string &BinaryName,
       fs::path(DeviceBinsDirectory) / (BinaryName + FileExtension);
 
   // Open the device binary in *binary* mode and start *at end* so we can
-  // query its size with tellg() before reading.
+  // query its size with tellg() before reading
   std::ifstream BinaryFile(BinaryPath, std::ios::binary | std::ios::ate);
   if (!BinaryFile) {
-    std::cerr << "Failed to open the device binary: " << BinaryPath << '\n';
-    return false;
+    FATAL_ERROR("Failed to open the device binary: " + BinaryPath.string());
   }
 
   std::streamsize BinarySize = BinaryFile.tellg();
   BinaryOut.resize(BinarySize);
   BinaryFile.seekg(0, std::ios::beg);
   if (!BinaryFile.read(BinaryOut.data(), BinarySize)) {
-    std::cerr << "Failed to read the device binary: " << BinaryPath << '\n';
-    return false;
+    FATAL_ERROR("Failed to read the device binary: " + BinaryPath.string());
   }
-
-  return true;
 }
