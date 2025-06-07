@@ -85,8 +85,8 @@ ol_device_handle_t ols::getHostHandle() {
   return HostHandle;
 }
 
-std::string getDeviceInfoAsString(const ols::Device &TargetDevice,
-                                  ol_device_info_t PropName) {
+static std::string getDeviceInfoAsString(const ols::Device &TargetDevice,
+                                         ol_device_info_t PropName) {
   assert(TargetDevice.Handle != nullptr &&
          "getDeviceInfoAsString called with a null TargetDevice.Handle.");
 
