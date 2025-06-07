@@ -16,9 +16,10 @@ static OffloadInitWrapper Wrapper{};
 const std::vector<ols::Device> &ols::getDevices() {
   // Thread-safe initialization of a static local variable
   static std::vector<ols::Device> Devices = []() -> std::vector<ols::Device> {
-    std::vector<ols::Device> TempDevices{};
+    std::vector<ols::Device> TempDevices;
 
-    auto ResultFromIterate = olIterateDevices(
+    // Discovery every device that is not the host.
+    const auto *const ResultFromIterate = olIterateDevices(
         [](ol_device_handle_t DeviceHandle, void *Data) {
           ol_platform_handle_t PlatformHandle = nullptr;
           OLS_CHECK(olGetDeviceInfo(DeviceHandle, OL_DEVICE_INFO_PLATFORM,
@@ -28,13 +29,13 @@ const std::vector<ols::Device> &ols::getDevices() {
           OLS_CHECK(olGetPlatformInfo(PlatformHandle, OL_PLATFORM_INFO_BACKEND,
                                       sizeof(Backend), &Backend));
 
-          bool IsHost = Backend == OL_PLATFORM_BACKEND_HOST;
-          bool IsCUDA = Backend == OL_PLATFORM_BACKEND_CUDA;
-          bool IsAMDGPU = Backend == OL_PLATFORM_BACKEND_AMDGPU;
+          if (Backend != OL_PLATFORM_BACKEND_HOST) {
+            bool IsCUDA = Backend == OL_PLATFORM_BACKEND_CUDA;
+            bool IsAMDGPU = Backend == OL_PLATFORM_BACKEND_AMDGPU;
 
-          static_cast<std::vector<ols::Device> *>(Data)->push_back(
-              {DeviceHandle, IsHost, IsCUDA, IsAMDGPU});
-
+            static_cast<std::vector<ols::Device> *>(Data)->push_back(
+                {DeviceHandle, IsCUDA, IsAMDGPU});
+          }
           return true;
         },
         &TempDevices);
@@ -47,24 +48,41 @@ const std::vector<ols::Device> &ols::getDevices() {
   return Devices;
 }
 
-const ols::Device &ols::getHostDevice() {
+ol_device_handle_t ols::getHostHandle() {
   // Thread-safe initialization of a static local variable
-  static const ols::Device &HostDeviceRef = []() -> const ols::Device & {
-    const auto &Devices = ols::getDevices();
+  static ol_device_handle_t HostHandle = []() -> ol_device_handle_t {
+    ol_device_handle_t Handle = nullptr;
 
-    for (const auto &CurrentDevice : ols::getDevices()) {
-      if (CurrentDevice.IsHost) {
-        return CurrentDevice;
-      }
-    }
+    const auto *const ResultFromIterate = olIterateDevices(
+        [](ol_device_handle_t DeviceHandle, void *Data) {
+          ol_platform_handle_t PlatformHandle = nullptr;
+          OLS_CHECK(olGetDeviceInfo(DeviceHandle, OL_DEVICE_INFO_PLATFORM,
+                                    sizeof(ol_platform_handle_t),
+                                    &PlatformHandle));
+          ol_platform_backend_t Backend;
+          OLS_CHECK(olGetPlatformInfo(PlatformHandle, OL_PLATFORM_INFO_BACKEND,
+                                      sizeof(Backend), &Backend));
 
+          if (Backend == OL_PLATFORM_BACKEND_HOST) {
+            *(static_cast<ol_device_handle_t *>(Data)) = DeviceHandle;
+            return false;
+          }
+          return true;
+        },
+        &Handle);
+
+    OLS_CHECK(ResultFromIterate);
+
+    return Handle;
+  }();
+
+  if (!HostHandle) {
     std::cerr << "FATAL ERROR: In function " << __func__ << " (" << __FILE__
               << ":" << __LINE__ << "): "
               << "The host device was not found" << '\n';
     std::exit(EXIT_FAILURE);
-  }();
-
-  return HostDeviceRef;
+  }
+  return HostHandle;
 }
 
 std::string getDeviceInfoAsString(const ols::Device &TargetDevice,
@@ -93,18 +111,11 @@ std::string getDeviceInfoAsString(const ols::Device &TargetDevice,
 }
 
 ols::DeviceInfo ols::getDeviceInfo(const Device &TargetDevice) {
-  std::string Name;
-  std::string Vendor;
-  std::string DriverVersion;
-
-  if (TargetDevice.IsHost) {
-    Name = "Host";
-  } else {
-    Name = getDeviceInfoAsString(TargetDevice, OL_DEVICE_INFO_NAME);
-    Vendor = getDeviceInfoAsString(TargetDevice, OL_DEVICE_INFO_VENDOR);
-    DriverVersion =
-        getDeviceInfoAsString(TargetDevice, OL_DEVICE_INFO_DRIVER_VERSION);
-  }
+  std::string Name = getDeviceInfoAsString(TargetDevice, OL_DEVICE_INFO_NAME);
+  std::string Vendor =
+      getDeviceInfoAsString(TargetDevice, OL_DEVICE_INFO_VENDOR);
+  std::string DriverVersion =
+      getDeviceInfoAsString(TargetDevice, OL_DEVICE_INFO_DRIVER_VERSION);
 
   ol_platform_handle_t Platform = nullptr;
   return ols::DeviceInfo({Name, Vendor, DriverVersion});

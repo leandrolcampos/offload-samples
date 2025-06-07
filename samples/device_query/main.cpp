@@ -6,16 +6,14 @@ int main() {
   auto Devices = ols::getDevices();
   auto DeviceCount = Devices.size();
 
-  printf("Detected %zu device(s), including the host.\n", DeviceCount);
+  printf("Detected %zu device(s).\n", DeviceCount);
 
   for (size_t DeviceId = 0; DeviceId < DeviceCount; DeviceId++) {
     const auto &CurrentDevice = Devices[DeviceId];
     auto Info = ols::getDeviceInfo(CurrentDevice);
 
     std::string Backend;
-    if (CurrentDevice.IsHost) {
-      Backend = "Host";
-    } else if (CurrentDevice.IsCUDA) {
+    if (CurrentDevice.IsCUDA) {
       Backend = "CUDA";
     } else if (CurrentDevice.IsAMDGPU) {
       Backend = "AMDGPU";

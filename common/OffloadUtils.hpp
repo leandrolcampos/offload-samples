@@ -38,7 +38,6 @@ inline void checkFailureHandler(const char *ResultExpr, ol_result_t Result,
 
 struct Device {
   ol_device_handle_t Handle = nullptr;
-  bool IsHost = false;
   bool IsCUDA = false;
   bool IsAMDGPU = false;
 };
@@ -51,7 +50,7 @@ struct DeviceInfo {
 
 const std::vector<Device> &getDevices();
 
-const Device &getHostDevice();
+ol_device_handle_t getHostHandle();
 
 DeviceInfo getDeviceInfo(const Device &TargetDevice);
 
