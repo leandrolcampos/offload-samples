@@ -8,8 +8,8 @@
 // The static 'Wrapper' instance ensures olInit() is called once at program
 // startup and olShutDown() is called once at program termination.
 struct OffloadInitWrapper {
-  OffloadInitWrapper() { OLS_CHECK(olInit()); }
-  ~OffloadInitWrapper() { OLS_CHECK(olShutDown()); }
+  OffloadInitWrapper() { OL_CHECK(olInit()); }
+  ~OffloadInitWrapper() { OL_CHECK(olShutDown()); }
 };
 static OffloadInitWrapper Wrapper{};
 
@@ -22,12 +22,12 @@ const std::vector<ols::Device> &ols::getDevices() {
     const auto *const ResultFromIterate = olIterateDevices(
         [](ol_device_handle_t DeviceHandle, void *Data) {
           ol_platform_handle_t PlatformHandle = nullptr;
-          OLS_CHECK(olGetDeviceInfo(DeviceHandle, OL_DEVICE_INFO_PLATFORM,
-                                    sizeof(ol_platform_handle_t),
-                                    &PlatformHandle));
+          OL_CHECK(olGetDeviceInfo(DeviceHandle, OL_DEVICE_INFO_PLATFORM,
+                                   sizeof(ol_platform_handle_t),
+                                   &PlatformHandle));
           ol_platform_backend_t Backend;
-          OLS_CHECK(olGetPlatformInfo(PlatformHandle, OL_PLATFORM_INFO_BACKEND,
-                                      sizeof(Backend), &Backend));
+          OL_CHECK(olGetPlatformInfo(PlatformHandle, OL_PLATFORM_INFO_BACKEND,
+                                     sizeof(Backend), &Backend));
 
           if (Backend != OL_PLATFORM_BACKEND_HOST) {
             bool IsCUDA = Backend == OL_PLATFORM_BACKEND_CUDA;
@@ -40,7 +40,7 @@ const std::vector<ols::Device> &ols::getDevices() {
         },
         &TempDevices);
 
-    OLS_CHECK(ResultFromIterate);
+    OL_CHECK(ResultFromIterate);
 
     return TempDevices;
   }();
@@ -56,12 +56,12 @@ ol_device_handle_t ols::getHostHandle() {
     const auto *const ResultFromIterate = olIterateDevices(
         [](ol_device_handle_t DeviceHandle, void *Data) {
           ol_platform_handle_t PlatformHandle = nullptr;
-          OLS_CHECK(olGetDeviceInfo(DeviceHandle, OL_DEVICE_INFO_PLATFORM,
-                                    sizeof(ol_platform_handle_t),
-                                    &PlatformHandle));
+          OL_CHECK(olGetDeviceInfo(DeviceHandle, OL_DEVICE_INFO_PLATFORM,
+                                   sizeof(ol_platform_handle_t),
+                                   &PlatformHandle));
           ol_platform_backend_t Backend;
-          OLS_CHECK(olGetPlatformInfo(PlatformHandle, OL_PLATFORM_INFO_BACKEND,
-                                      sizeof(Backend), &Backend));
+          OL_CHECK(olGetPlatformInfo(PlatformHandle, OL_PLATFORM_INFO_BACKEND,
+                                     sizeof(Backend), &Backend));
 
           if (Backend == OL_PLATFORM_BACKEND_HOST) {
             *(static_cast<ol_device_handle_t *>(Data)) = DeviceHandle;
@@ -71,7 +71,7 @@ ol_device_handle_t ols::getHostHandle() {
         },
         &Handle);
 
-    OLS_CHECK(ResultFromIterate);
+    OL_CHECK(ResultFromIterate);
 
     return Handle;
   }();
@@ -96,15 +96,15 @@ static std::string getDeviceInfoAsString(const ols::Device &TargetDevice,
          "Invalid PropName passed to getDeviceInfoAsString.");
 
   size_t PropSize = 0;
-  OLS_CHECK(olGetDeviceInfoSize(TargetDevice.Handle, PropName, &PropSize));
+  OL_CHECK(olGetDeviceInfoSize(TargetDevice.Handle, PropName, &PropSize));
 
   if (PropSize == 0) {
     return "";
   }
 
   std::string PropValue(PropSize, '\0');
-  OLS_CHECK(olGetDeviceInfo(TargetDevice.Handle, PropName, PropSize,
-                            PropValue.data()));
+  OL_CHECK(olGetDeviceInfo(TargetDevice.Handle, PropName, PropSize,
+                           PropValue.data()));
   PropValue.pop_back(); // Remove the null terminator
 
   return PropValue;
@@ -128,12 +128,12 @@ bool ols::loadDeviceBinary(const std::string &BinaryName,
                            std::vector<char> &BinaryOut) {
 
   ol_platform_handle_t Platform = nullptr;
-  OLS_CHECK(olGetDeviceInfo(TargetDevice.Handle, OL_DEVICE_INFO_PLATFORM,
-                            sizeof(ol_platform_handle_t), &Platform));
+  OL_CHECK(olGetDeviceInfo(TargetDevice.Handle, OL_DEVICE_INFO_PLATFORM,
+                           sizeof(ol_platform_handle_t), &Platform));
 
   ol_platform_backend_t Backend;
-  OLS_CHECK(olGetPlatformInfo(Platform, OL_PLATFORM_INFO_BACKEND,
-                              sizeof(Backend), &Backend));
+  OL_CHECK(olGetPlatformInfo(Platform, OL_PLATFORM_INFO_BACKEND,
+                             sizeof(Backend), &Backend));
 
   std::string FileExtension;
   switch (Backend) {

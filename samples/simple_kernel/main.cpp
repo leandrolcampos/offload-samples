@@ -25,11 +25,11 @@ int main() {
   }
 
   ol_program_handle_t Program = nullptr;
-  OLS_CHECK(olCreateProgram(CUDADevice.Handle, DeviceBinary.data(),
-                            DeviceBinary.size(), &Program));
+  OL_CHECK(olCreateProgram(CUDADevice.Handle, DeviceBinary.data(),
+                           DeviceBinary.size(), &Program));
 
   ol_kernel_handle_t Kernel = nullptr;
-  OLS_CHECK(olGetKernel(Program, "simple_kernel", &Kernel));
+  OL_CHECK(olGetKernel(Program, "simple_kernel", &Kernel));
 
   ol_kernel_launch_size_args_t LaunchArgs{};
   LaunchArgs.Dimensions = 1;
@@ -45,15 +45,15 @@ int main() {
   LaunchArgs.DynSharedMemory = 0;
 
   void *Buffer;
-  OLS_CHECK(olMemAlloc(CUDADevice.Handle, OL_ALLOC_TYPE_MANAGED,
-                       GROUP_SIZE_X * sizeof(int), &Buffer));
+  OL_CHECK(olMemAlloc(CUDADevice.Handle, OL_ALLOC_TYPE_MANAGED,
+                      GROUP_SIZE_X * sizeof(int), &Buffer));
 
   struct {
     void *Buffer;
   } Args{Buffer};
 
-  OLS_CHECK(olLaunchKernel(nullptr, CUDADevice.Handle, Kernel, &Args,
-                           sizeof(Args), &LaunchArgs, nullptr));
+  OL_CHECK(olLaunchKernel(nullptr, CUDADevice.Handle, Kernel, &Args,
+                          sizeof(Args), &LaunchArgs, nullptr));
 
   int *Data = (int *)Buffer;
   for (int i = 0; i < GROUP_SIZE_X; ++i) {
@@ -61,8 +61,8 @@ int main() {
               << (Data[i] == i ? " (correct)" : " (incorrect)") << '\n';
   }
 
-  OLS_CHECK(olMemFree(Buffer));
-  OLS_CHECK(olDestroyProgram(Program));
+  OL_CHECK(olMemFree(Buffer));
+  OL_CHECK(olDestroyProgram(Program));
 
   return 0;
 }

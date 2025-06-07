@@ -10,12 +10,12 @@ namespace ols {
 
 namespace internal {
 
-// OLS_CHECK failure handler. Separated from the macro to ensure this header
+// OL_CHECK failure handler. Separated from the macro to ensure this header
 // explicitly includes <cstdlib> and <iostream> for its expansion.
 inline void checkFailureHandler(const char *ResultExpr, ol_result_t Result,
                                 const char *File, int Line,
                                 const char *FuncName) {
-  std::cerr << "OLS_CHECK FAILED: (" << ResultExpr << ") != OL_SUCCESS\n"
+  std::cerr << "OL_CHECK FAILED: (" << ResultExpr << ") != OL_SUCCESS\n"
             << "  Error Code: " << Result->Code << '\n'
             << "  Details: "
             << (Result->Details ? Result->Details : "No details provided")
@@ -27,7 +27,7 @@ inline void checkFailureHandler(const char *ResultExpr, ol_result_t Result,
 
 } // namespace internal
 
-#define OLS_CHECK(ResultExpr)                                                  \
+#define OL_CHECK(ResultExpr)                                                   \
   do {                                                                         \
     ol_result_t Result = (ResultExpr);                                         \
     if (Result != OL_SUCCESS) {                                                \
