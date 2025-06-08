@@ -3,10 +3,10 @@ macro(add_device_code src_filename binary_name)
 
   find_package(CUDAToolkit QUIET)
   if(CUDAToolkit_FOUND)
-    get_filename_component(CUDA_ROOT "${CUDAToolkit_BIN_DIR}" DIRECTORY)
+    get_filename_component(CUDA_ROOT "${CUDAToolkit_BIN_DIR}" DIRECTORY ABSOLUTE)
     set(BIN_PATH "${OLS_DEVICE_CODE_PATH}/${binary_name}.nvptx64.bin")
     add_custom_command(OUTPUT ${BIN_PATH}
-      COMMAND ${CMAKE_C_COMPILER}
+      COMMAND ${CMAKE_CXX_COMPILER}
               --target=nvptx64-nvidia-cuda
               -march=native
               --cuda-path=${CUDA_ROOT}
@@ -15,8 +15,8 @@ macro(add_device_code src_filename binary_name)
     list(APPEND BINARIES ${BIN_PATH})
   endif()
 
-  # TODO: Build for AMDGPU and host CPU
+  # TODO: Build for AMDGPU
 endmacro()
 
-add_device_code(simple_kernel.c simple_kernel)
+add_device_code(SimpleKernel.cpp SimpleKernel)
 add_custom_target(SimpleKernelDeviceBins DEPENDS ${BINARIES})

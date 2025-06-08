@@ -48,6 +48,17 @@ const std::vector<ols::Device> &ols::getDevices() {
   return Devices;
 }
 
+size_t ols::countDevices() { return ols::getDevices().size(); }
+
+const ols::Device &ols::getCUDADevice() {
+  // Select the first CUDA device
+  for (const auto &CurrentDevice : ols::getDevices())
+    if (CurrentDevice.IsCUDA)
+      return CurrentDevice;
+
+  FATAL_ERROR("No CUDA devices found");
+}
+
 ol_device_handle_t ols::getHostHandle() {
   // Thread-safe initialization of a static local variable
   static ol_device_handle_t HostHandle = []() -> ol_device_handle_t {

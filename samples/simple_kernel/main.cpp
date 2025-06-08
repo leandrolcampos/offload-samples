@@ -4,27 +4,18 @@
 
 #define GROUP_SIZE_X 8
 
-static const ols::Device &getCUDADevice() {
-  // Select the first CUDA device
-  for (const auto &CurrentDevice : ols::getDevices())
-    if (CurrentDevice.IsCUDA)
-      return CurrentDevice;
-
-  FATAL_ERROR("No CUDA devices found");
-}
-
 int main() {
-  const auto &CUDADevice = getCUDADevice();
+  const auto &CUDADevice = ols::getCUDADevice();
 
   std::vector<char> DeviceBinary;
-  loadDeviceBinary("simple_kernel", CUDADevice, DeviceBinary);
+  loadDeviceBinary("SimpleKernel", CUDADevice, DeviceBinary);
 
   ol_program_handle_t Program = nullptr;
   OL_CHECK(olCreateProgram(CUDADevice.Handle, DeviceBinary.data(),
                            DeviceBinary.size(), &Program));
 
   ol_kernel_handle_t Kernel = nullptr;
-  OL_CHECK(olGetKernel(Program, "simple_kernel", &Kernel));
+  OL_CHECK(olGetKernel(Program, "simpleKernel", &Kernel));
 
   ol_kernel_launch_size_args_t LaunchArgs{};
   LaunchArgs.Dimensions = 1;

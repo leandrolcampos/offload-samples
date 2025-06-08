@@ -64,6 +64,10 @@ struct DeviceInfo {
 
 const std::vector<Device> &getDevices();
 
+size_t countDevices();
+
+const Device &getCUDADevice();
+
 ol_device_handle_t getHostHandle();
 
 DeviceInfo getDeviceInfo(const Device &TargetDevice);
