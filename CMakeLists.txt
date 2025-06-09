@@ -9,6 +9,8 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
+add_compile_options(-fno-builtin)
+
 # -----------------------------------------------------------------------------
 # LLVM installation paths
 # -----------------------------------------------------------------------------
@@ -19,6 +21,30 @@ set(LLVM_LIBDIR "${LLVM_HOME}/lib")
 # Make LLVM libraries discoverable at build and runtime
 list(APPEND CMAKE_PREFIX_PATH "${LLVM_HOME}")
 set(CMAKE_BUILD_RPATH "${LLVM_LIBDIR}")
+
+# -----------------------------------------------------------------------------
+# LLVM Libc integration
+# -----------------------------------------------------------------------------
+
+execute_process(
+  COMMAND "${CMAKE_CXX_COMPILER}" -print-target-triple
+  OUTPUT_VARIABLE LLVM_DEFAULT_TRIPLE
+  OUTPUT_STRIP_TRAILING_WHITESPACE
+  RESULT_VARIABLE LLVM_TRIPLE_RESULT
+  ERROR_QUIET
+)
+
+set(
+  LLVM_LIBC_ARCHIVE
+  "${LLVM_LIBDIR}/${LLVM_DEFAULT_TRIPLE}/libllvmlibc.a" CACHE FILEPATH
+  "Full path to libllvmlibc.a"
+)
+
+add_library(LLVMLibC STATIC IMPORTED GLOBAL)
+set_target_properties(
+  LLVMLibC
+  PROPERTIES IMPORTED_LOCATION "${LLVM_LIBC_ARCHIVE}"
+)
 
 # ---------------------------------------------------------------------------
 # Device code staging directory

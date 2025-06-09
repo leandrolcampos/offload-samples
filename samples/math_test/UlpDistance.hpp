@@ -18,7 +18,7 @@ inline constexpr UIntType maskTrailingOnes() {
       Count <= TotalBits,
       "Count must be less than or equal to the bit width of UIntType");
 
-  return Count == 0 ? 0 : (~UIntType(0) >> (TotalBits - Count));
+  return Count == 0U ? 0U : (~UIntType{0U} >> (TotalBits - Count));
 }
 
 template <typename FloatType> struct FPLayout;
@@ -26,25 +26,25 @@ template <typename FloatType> struct FPLayout;
 template <> struct FPLayout<float> {
   using StorageType = uint32_t;
 
-  inline static constexpr int SignLen = 1;
-  inline static constexpr int ExponentLen = 8;
-  inline static constexpr int FractionLen = 23;
+  inline static constexpr size_t SignLen = 1U;
+  inline static constexpr size_t ExponentLen = 8U;
+  inline static constexpr size_t FractionLen = 23U;
 };
 
 template <> struct FPLayout<double> {
   using StorageType = uint64_t;
 
-  inline static constexpr int SignLen = 1;
-  inline static constexpr int ExponentLen = 11;
-  inline static constexpr int FractionLen = 52;
+  inline static constexpr size_t SignLen = 1U;
+  inline static constexpr size_t ExponentLen = 11U;
+  inline static constexpr size_t FractionLen = 52U;
 };
 
 template <typename FloatType> struct FPUtils : public FPLayout<FloatType> {
-  using UP = FPLayout<FloatType>;
-  using StorageType = typename UP::StorageType;
-  using UP::ExponentLen;
-  using UP::FractionLen;
-  using UP::SignLen;
+  using Layout = FPLayout<FloatType>;
+  using StorageType = typename Layout::StorageType;
+  using Layout::ExponentLen;
+  using Layout::FractionLen;
+  using Layout::SignLen;
 
   inline static constexpr StorageType SignMask =
       maskTrailingOnes<StorageType, SignLen>() << (ExponentLen + FractionLen);
@@ -70,16 +70,16 @@ uint64_t computeUlpDistance(FloatType X, FloatType Y) {
       // (in any order). Since we want to treat them as unequal in the context
       // of accuracy testing of mathematical functions, we return the smallest
       // non-zero value
-      return 1;
+      return 1U;
     }
-    return 0;
+    return 0U;
   }
 
   const bool XIsNaN = std::isnan(X);
   const bool YIsNaN = std::isnan(Y);
 
   if (XIsNaN && YIsNaN) {
-    return 0;
+    return 0U;
   }
   if (XIsNaN || YIsNaN) {
     return std::numeric_limits<uint64_t>::max();
@@ -101,6 +101,5 @@ uint64_t computeUlpDistance(FloatType X, FloatType Y) {
   return static_cast<uint64_t>(MappedX > MappedY ? MappedX - MappedY
                                                  : MappedY - MappedX);
 }
-
 } // namespace testing
 } // namespace ols
