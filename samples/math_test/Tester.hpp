@@ -2,7 +2,6 @@
 
 #include "OffloadUtils.hpp"
 #include "UlpDistance.hpp"
-#include <algorithm>
 #include <cmath>
 #include <cstdint>
 #include <optional>
@@ -99,9 +98,9 @@ public:
           " > " + std::to_string(BufferSize));
     }
 
-    olMemcpy(nullptr, InBuffer, GPUDevice.Handle,
-             const_cast<InType *>(Input.data()), Host,
-             InputSize * sizeof(InType), nullptr);
+    OL_CHECK(olMemcpy(nullptr, InBuffer, GPUDevice.Handle,
+                      const_cast<InType *>(Input.data()), Host,
+                      InputSize * sizeof(InType), nullptr));
 
     ol_kernel_launch_size_args_t LaunchArgs = getKernelLaunchArgs(InputSize);
 
@@ -139,19 +138,14 @@ private:
   void *InBuffer = nullptr;
   void *OutBuffer = nullptr;
 
-  ol_kernel_launch_size_args_t getKernelLaunchArgs(size_t InputSize) {
+  ol_kernel_launch_size_args_t getKernelLaunchArgs(uint32_t InputSize) {
     ol_kernel_launch_size_args_t LaunchArgs;
     LaunchArgs.Dimensions = 1;
 
-    LaunchArgs.GroupSizeX = 1024;
-    LaunchArgs.GroupSizeY = 1;
-    LaunchArgs.GroupSizeZ = 1;
-
-    LaunchArgs.NumGroupsX =
-        (InputSize + LaunchArgs.GroupSizeX - 1) / LaunchArgs.GroupSizeX;
-    LaunchArgs.NumGroupsY = 1;
-    LaunchArgs.NumGroupsZ = 1;
-
+    LaunchArgs.GroupSize = {1024, 1, 1};
+    LaunchArgs.NumGroups = {(InputSize + LaunchArgs.GroupSize.x - 1) /
+                                LaunchArgs.GroupSize.x,
+                            1, 1};
     LaunchArgs.DynSharedMemory = 0;
 
     return LaunchArgs;

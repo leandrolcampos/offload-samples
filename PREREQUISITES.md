@@ -124,12 +124,31 @@ ninja -C build install -j8
 > [!NOTE]
 > Running Ninja with high parallelism can cause spurious failures, out-of-resource errors, or indefinite hangs. Limit the number of jobs with `-j<N>` if you hit such issues.
 
-Now build and run the tests for the new Offload API:
+Now build the tests for the new Offload API
 
 ```bash
-ninja -C build/runtimes/runtimes-bins offload.unittests
-./build/runtimes/runtimes-bins/offload/unittests/OffloadAPI/offload.unittests
+ninja -C build/runtimes/runtimes-bins OffloadUnitTests
 ```
+
+and run some of them:
+
+* Device:
+
+    ```bash
+    ./build/runtimes/runtimes-bins/offload/unittests/OffloadAPI/device.unittests
+    ```
+
+* Kernel:
+
+    ```bash
+    ./build/runtimes/runtimes-bins/offload/unittests/OffloadAPI/kernel.unittests
+    ```
+
+* Memory:
+
+    ```bash
+    ./build/runtimes/runtimes-bins/offload/unittests/OffloadAPI/memory.unittests
+    ```
 
 Finally, run the tests for the GPU C library:
 

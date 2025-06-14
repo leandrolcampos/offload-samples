@@ -20,13 +20,8 @@ int main() {
   ol_kernel_launch_size_args_t LaunchArgs{};
   LaunchArgs.Dimensions = 1;
 
-  LaunchArgs.NumGroupsX = 1;
-  LaunchArgs.NumGroupsY = 1;
-  LaunchArgs.NumGroupsZ = 1;
-
-  LaunchArgs.GroupSizeX = GROUP_SIZE_X;
-  LaunchArgs.GroupSizeY = 1;
-  LaunchArgs.GroupSizeZ = 1;
+  LaunchArgs.NumGroups = {1, 1, 1};
+  LaunchArgs.GroupSize = {GROUP_SIZE_X, 1, 1};
 
   LaunchArgs.DynSharedMemory = 0;
 
