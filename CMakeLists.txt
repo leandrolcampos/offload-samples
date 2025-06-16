@@ -18,6 +18,8 @@ add_compile_options(-fno-builtin)
 set(LLVM_HOME "$ENV{LLVM_HOME}" CACHE PATH "Path to the LLVM installation")
 set(LLVM_LIBDIR "${LLVM_HOME}/lib")
 
+link_directories("${LLVM_LIBDIR}")
+
 # Make LLVM libraries discoverable at build and runtime
 list(APPEND CMAKE_PREFIX_PATH "${LLVM_HOME}")
 set(CMAKE_BUILD_RPATH "${LLVM_LIBDIR}")
@@ -65,6 +67,20 @@ find_library(
   REQUIRED
 )
 
+find_library(
+  LLVMSupport
+  NAMES LLVMSupport
+  PATHS "${LLVM_HOME}/lib"
+  REQUIRED
+)
+
+find_library(
+  LLVMDemangle
+  NAMES LLVMDemangle
+  PATHS "${LLVM_HOME}/lib"
+  REQUIRED
+)
+
 # -----------------------------------------------------------------------------
 # Subdirectory
 # -----------------------------------------------------------------------------
@@ -73,3 +89,4 @@ add_subdirectory(common)
 add_subdirectory(samples/device_query)
 add_subdirectory(samples/math_test)
 add_subdirectory(samples/simple_kernel)
+add_subdirectory(samples/testing)
