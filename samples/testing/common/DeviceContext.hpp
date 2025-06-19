@@ -1,28 +1,26 @@
 #pragma once
 
 #include "Support.hpp"
-#include <llvm/Support/MemoryBuffer.h>
-#include <llvm/Support/raw_ostream.h>
-#include <offload/OffloadAPI.h>
+#include "offload/OffloadAPI.h"
+#include "llvm/Support/raw_ostream.h"
 #include <string>
-#include <tuple>
 
 #define OL_CHECK(ResultExpr)                                                   \
   do {                                                                         \
     ol_result_t Result = (ResultExpr);                                         \
     if (Result != OL_SUCCESS) {                                                \
-      testing::internal::checkFailureHandler(#ResultExpr, Result, __FILE__,    \
-                                             __LINE__, __func__);              \
+      testing::internal::reportOffloadError(#ResultExpr, Result, __FILE__,     \
+                                            __LINE__, __func__);               \
     }                                                                          \
   } while (false)
 
 namespace testing {
 namespace internal {
 
-[[noreturn]] inline void checkFailureHandler(const char *ResultExpr,
-                                             ol_result_t Result,
-                                             const char *File, int Line,
-                                             const char *FuncName) {
+[[noreturn]] inline void reportOffloadError(const char *ResultExpr,
+                                            ol_result_t Result,
+                                            const char *File, int Line,
+                                            const char *FuncName) {
   llvm::errs() << "--- OL_CHECK FAILED ---\n"
                << "Location: " << File << ":" << Line << "\n"
                << "Function: " << FuncName << "\n"
@@ -36,7 +34,7 @@ namespace internal {
 
 } // namespace internal
 
-size_t countDevices();
+size_t countDevices() noexcept;
 
 class DeviceContext;
 
@@ -50,7 +48,7 @@ private:
   ManagedBuffer(T *Address, size_t Size) : Address(Address), Size(Size) {}
 
 public:
-  ~ManagedBuffer() {
+  ~ManagedBuffer() noexcept {
     if (Address) {
       OL_CHECK(olMemFree(Address));
     }
@@ -82,19 +80,11 @@ public:
     return *this;
   }
 
-  T *data() { return Address; }
+  T *data() noexcept { return Address; }
 
-  const T *data() const { return Address; }
+  const T *data() const noexcept { return Address; }
 
-  size_t getSize() const { return Size; }
-
-  operator llvm::MutableArrayRef<T>() {
-    return llvm::MutableArrayRef<T>(data(), getSize());
-  }
-
-  operator llvm::ArrayRef<T>() const {
-    return llvm::ArrayRef<T>(data(), getSize());
-  }
+  [[nodiscard]] size_t getSize() const noexcept { return Size; }
 };
 
 class [[nodiscard]] DeviceImage {
@@ -108,7 +98,7 @@ private:
       : DeviceHandle(DeviceHandle), Handle(Handle) {}
 
 public:
-  ~DeviceImage() {
+  ~DeviceImage() noexcept {
     if (Handle) {
       OL_CHECK(olDestroyProgram(Handle));
     }
@@ -152,6 +142,8 @@ private:
       : Image(Image), Handle(Kernel) {}
 
 public:
+  DeviceKernel() = delete;
+
   DeviceKernel(const DeviceKernel &) = default;
   DeviceKernel &operator=(const DeviceKernel &) = default;
   DeviceKernel(DeviceKernel &&) noexcept = default;
@@ -164,7 +156,7 @@ private:
 
   uint32_t Data[3] = {1, 1, 1};
 
-  constexpr operator ol_dimensions_t() const {
+  constexpr operator ol_dimensions_t() const noexcept {
     return {Data[0], Data[1], Data[2]};
   }
 
@@ -176,8 +168,8 @@ public:
   }
 
   constexpr Dim(std::initializer_list<uint32_t> Dimensions) {
-    assert(Dimensions.size() > 0 && Dimensions.size() <= 3 &&
-           "The number of dimensions must be between 1 and 3");
+    assert(Dimensions.size() <= 3 &&
+           "The number of dimensions must be less than or equal to 3");
 
     const auto *It = Dimensions.begin();
     auto X = Data[0] = (Dimensions.size() >= 1) ? *It++ : 1;
@@ -187,13 +179,19 @@ public:
     assert(X > 0 && Y > 0 && Z > 0 && "Dimensions must be positive");
   }
 
-  constexpr uint32_t operator[](size_t Index) const {
-    assert(Index < 3 && "Invalid index");
+  constexpr uint32_t operator[](size_t Index) const noexcept {
+    assert(Index < 3 && "Index is out of range");
     return Data[Index];
   }
 };
 
 class DeviceContext {
+  // For simplicity, the current design of this class doesn't have support for
+  // asynchronous operations and all types of memory allocation.
+  //
+  // Other use cases could benefit from operations like enqueued kernel launch
+  // and enqueued memcpy, as well as device and host memory allocation.
+
 private:
   size_t DeviceId;
   ol_device_handle_t DeviceHandle;
@@ -222,7 +220,7 @@ public:
             const std::string &KernelName) const {
     if (Image->DeviceHandle != this->DeviceHandle) {
       FATAL_ERROR("Image provided to getKernel was created for a different "
-                  "DeviceContext");
+                  "device");
     }
 
     ol_kernel_handle_t KernelHandle = nullptr;
@@ -234,7 +232,7 @@ public:
   template <typename KernelSignature, typename... ArgTypes>
   void launchKernel(DeviceKernel<KernelSignature> Kernel, Dim NumGroups,
                     Dim GroupSize, ArgTypes &&...Args) const {
-    using ExpectedTypes = FunctionTraits<KernelSignature>::ArgTuple;
+    using ExpectedTypes = FunctionTraits<KernelSignature>::ArgTypesTuple;
     using ProvidedTypes = std::tuple<std::decay_t<ArgTypes>...>;
 
     static_assert(std::is_same_v<ExpectedTypes, ProvidedTypes>,
@@ -243,11 +241,12 @@ public:
 
     if (Kernel.Image->DeviceHandle != DeviceHandle) {
       FATAL_ERROR("Kernel provided to launchKernel was created for a different "
-                  "DeviceContext");
+                  "device");
     }
 
     ol_kernel_launch_size_args_t LaunchArgs;
-    LaunchArgs.Dimensions = 3; // It seems this field is not used anywhere
+    LaunchArgs.Dimensions = 3; // It seems this field is not used anywhere.
+                               // Defaulting to the safest value
     LaunchArgs.NumGroups = NumGroups;
     LaunchArgs.GroupSize = GroupSize;
     LaunchArgs.DynSharedMemory = 0;
@@ -256,24 +255,25 @@ public:
       OL_CHECK(olLaunchKernel(nullptr, DeviceHandle, Kernel.Handle, nullptr, 0,
                               &LaunchArgs, nullptr));
     } else {
-      auto KernelArgs = std::make_tuple(std::forward<ArgTypes>(Args)...);
+      auto KernelArgs = makeKernelArgPack(std::forward<ArgTypes>(Args)...);
 
-      static_assert(std::is_standard_layout_v<decltype(KernelArgs)>,
-                    "Kernel arguments tuple must have a standard layout");
+      static_assert(
+          (std::is_trivially_copyable_v<std::decay_t<ArgTypes>> && ...),
+          "Argument types provided to launchKernel must be trivially copyable");
 
       OL_CHECK(olLaunchKernel(nullptr, DeviceHandle, Kernel.Handle, &KernelArgs,
                               sizeof(KernelArgs), &LaunchArgs, nullptr));
     }
   }
 
-  size_t getId() const { return DeviceId; }
+  [[nodiscard]] size_t getId() const { return DeviceId; }
 
-  std::string getName() const;
+  [[nodiscard]] std::string getName() const;
 
-  std::string getPlatform() const;
+  [[nodiscard]] std::string getPlatform() const;
 
 private:
-  ol_platform_backend_t getBackend() const;
+  [[nodiscard]] ol_platform_backend_t getBackend() const;
 };
 
 } // namespace testing

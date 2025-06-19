@@ -18,27 +18,29 @@ add_compile_options(-fno-builtin)
 set(LLVM_HOME "$ENV{LLVM_HOME}" CACHE PATH "Path to the LLVM installation")
 set(LLVM_LIBDIR "${LLVM_HOME}/lib")
 
-link_directories("${LLVM_LIBDIR}")
+execute_process(
+  COMMAND "${CMAKE_CXX_COMPILER}" -print-target-triple
+  OUTPUT_VARIABLE LLVM_DEFAULT_TRIPLE
+  OUTPUT_STRIP_TRAILING_WHITESPACE
+)
 
-# Make LLVM libraries discoverable at build and runtime
+set(LLVM_TARGET_LIBDIR "${LLVM_LIBDIR}/${LLVM_DEFAULT_TRIPLE}")
+message(STATUS "LLVM target-specific library path: ${LLVM_TARGET_LIBDIR}")
+
+link_directories("${LLVM_LIBDIR}" "${LLVM_TARGET_LIBDIR}")
+
+set(CMAKE_INSTALL_RPATH "${LLVM_LIBDIR};${LLVM_TARGET_LIBDIR}")
+set(CMAKE_BUILD_WITH_INSTALL_RPATH TRUE)
+
 list(APPEND CMAKE_PREFIX_PATH "${LLVM_HOME}")
-set(CMAKE_BUILD_RPATH "${LLVM_LIBDIR}")
 
 # -----------------------------------------------------------------------------
 # LLVM Libc integration
 # -----------------------------------------------------------------------------
 
-execute_process(
-  COMMAND "${CMAKE_CXX_COMPILER}" -print-target-triple
-  OUTPUT_VARIABLE LLVM_DEFAULT_TRIPLE
-  OUTPUT_STRIP_TRAILING_WHITESPACE
-  RESULT_VARIABLE LLVM_TRIPLE_RESULT
-  ERROR_QUIET
-)
-
 set(
   LLVM_LIBC_ARCHIVE
-  "${LLVM_LIBDIR}/${LLVM_DEFAULT_TRIPLE}/libllvmlibc.a" CACHE FILEPATH
+  "${LLVM_TARGET_LIBDIR}/libllvmlibc.a" CACHE FILEPATH
   "Full path to libllvmlibc.a"
 )
 
@@ -80,6 +82,8 @@ find_library(
   PATHS "${LLVM_HOME}/lib"
   REQUIRED
 )
+
+find_package(OpenMP REQUIRED)
 
 # -----------------------------------------------------------------------------
 # Subdirectory

@@ -1,6 +1,7 @@
 #include "DeviceContext.hpp"
-#include "Support.hpp"
-#include <llvm/Support/raw_ostream.h>
+#include "llvm/Support/MemoryBuffer.h"
+
+namespace {
 
 // The static 'Wrapper' instance ensures olInit() is called once at program
 // startup and olShutDown() is called once at program termination
@@ -10,13 +11,13 @@ struct OffloadInitWrapper {
 };
 static OffloadInitWrapper Wrapper{};
 
-const static std::vector<ol_device_handle_t> getDevices() {
+const std::vector<ol_device_handle_t> &getDevices() {
   // Thread-safe initialization of a static local variable
   static std::vector<ol_device_handle_t> Devices =
       []() -> std::vector<ol_device_handle_t> {
     std::vector<ol_device_handle_t> TempDevices;
 
-    // Discovery every device that is not the host
+    // Discovers all devices that are not the host
     const auto *const ResultFromIterate = olIterateDevices(
         [](ol_device_handle_t DeviceHandle, void *Data) {
           ol_platform_handle_t PlatformHandle = nullptr;
@@ -43,9 +44,11 @@ const static std::vector<ol_device_handle_t> getDevices() {
   return Devices;
 }
 
+} // namespace
+
 namespace testing {
 
-size_t countDevices() { return getDevices().size(); }
+size_t countDevices() noexcept { return getDevices().size(); }
 
 DeviceContext::DeviceContext(size_t DeviceId)
     : DeviceId(DeviceId), DeviceHandle(nullptr) {
@@ -54,13 +57,13 @@ DeviceContext::DeviceContext(size_t DeviceId)
   if (DeviceId >= Devices.size()) {
     FATAL_ERROR("Invalid DeviceId: " + std::to_string(DeviceId) +
                 ", but only " + std::to_string(Devices.size()) +
-                " devices are available.");
+                " devices are available");
   }
 
   DeviceHandle = Devices[DeviceId];
 }
 
-[[nodiscard]] std::shared_ptr<DeviceImage>
+std::shared_ptr<DeviceImage>
 DeviceContext::loadBinary(const std::string &Directory,
                           const std::string &BinaryName,
                           const std::string &Extension) const {
@@ -88,7 +91,7 @@ DeviceContext::loadBinary(const std::string &Directory,
       new DeviceImage(DeviceHandle, ProgramHandle));
 }
 
-[[nodiscard]] std::shared_ptr<DeviceImage>
+std::shared_ptr<DeviceImage>
 DeviceContext::loadBinary(const std::string &Directory,
                           const std::string &BinaryName) const {
   std::string Extension;

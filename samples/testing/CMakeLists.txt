@@ -12,6 +12,7 @@ target_link_libraries(
   testing PRIVATE
   MathTest
   LLVMLibC
+  OpenMP::OpenMP_CXX
 )
 
 get_property(device_code_path GLOBAL PROPERTY OLS_DEVICE_CODE_PATH)
