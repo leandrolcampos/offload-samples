@@ -121,7 +121,6 @@ public:
     assert((Size > 0) && "The input space size must be at least 1");
 
     IndexArrayType DimSizes = {};
-
     {
       size_t Index = 0;
       ((DimSizes[Index++] = Ranges.getSize()), ...);
@@ -142,7 +141,9 @@ public:
     assert((BufferSize != 0) && //
            std::all_of(BufferSizes.begin(), BufferSizes.end(),
                        [&](size_t S) { return S == BufferSize; }) &&
-           "All buffers must have the same, non-zero size");
+           "All input buffers must have the same size");
+
+    assert((BufferSize != 0) && "Buffer size cannot be zero");
 
     uint64_t StartFlatIndex, BatchSize;
     while (true) {
@@ -164,9 +165,10 @@ public:
       }
     }
 
+    const size_t NumThreads = getNumThreads(BufferSize);
     auto BufferPtrTuple = std::make_tuple(Buffers.data()...);
 
-#pragma omp parallel for schedule(static) num_threads(getNumThreads(BatchSize))
+#pragma omp parallel for schedule(static) num_threads(NumThreads)
     for (uint64_t Offset = 0; Offset < BatchSize; ++Offset) {
       writeInputs(StartFlatIndex, Offset, BufferPtrTuple);
     }

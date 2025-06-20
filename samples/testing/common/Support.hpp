@@ -29,12 +29,14 @@ struct FunctionTraits<RetType(ArgTypes...)> {
   using ReturnType = RetType;
   using ArgTypesTuple = std::tuple<ArgTypes...>;
 
-  static constexpr size_t ArgCount = sizeof...(ArgTypes);
+  static constexpr size_t NumArgs = sizeof...(ArgTypes);
 };
 
 template <typename RetType, typename... ArgTypes>
 struct FunctionTraits<RetType (*)(ArgTypes...)>
     : FunctionTraits<RetType(ArgTypes...)> {};
+
+template <auto Func> struct FunctionConfig;
 
 template <typename... ArgTypes> struct KernelArgPack;
 
@@ -52,6 +54,17 @@ template <typename... ArgTypes>
 KernelArgPack<ArgTypes...> makeKernelArgPack(ArgTypes &&...Args) {
   return {std::forward<ArgTypes>(Args)...};
 }
+
+template <typename TupleTypes, template <typename...> class Template>
+struct ApplyTupleTypes;
+
+template <template <typename...> class Template, typename... Ts>
+struct ApplyTupleTypes<std::tuple<Ts...>, Template> {
+  using type = Template<Ts...>;
+};
+
+template <typename TupleTypes, template <typename...> class Template>
+using ApplyTupleTypes_t = typename ApplyTupleTypes<TupleTypes, Template>::type;
 
 template <typename UIntType>
 static size_t getNumThreads(UIntType ProblemSize,

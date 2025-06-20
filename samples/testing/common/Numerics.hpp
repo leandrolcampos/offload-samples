@@ -1,6 +1,7 @@
 #pragma once
 
 #include <climits>
+#include <cmath>
 #include <cstdint>
 #include <cstdlib>
 #include <limits>
@@ -122,5 +123,49 @@ template <typename FloatType> struct FPUtils : public FPLayout<FloatType> {
     return __builtin_bit_cast(StorageType, Value);
   }
 };
+
+template <typename FloatType>
+uint64_t computeUlpDistance(FloatType X, FloatType Y) {
+  static_assert(std::is_floating_point_v<FloatType>,
+                "FloatType must be a floating-point type");
+  using StorageType = typename FPUtils<FloatType>::StorageType;
+
+  if (X == Y) {
+    if (std::signbit(X) != std::signbit(Y)) [[unlikely]] {
+      // When X == Y, different sign bits imply that X and Y are +0.0 and -0.0
+      // (in any order). Since we want to treat them as unequal in the context
+      // of accuracy testing of mathematical functions, we return the smallest
+      // non-zero value
+      return 1U;
+    }
+    return 0U;
+  }
+
+  const bool XIsNaN = std::isnan(X);
+  const bool YIsNaN = std::isnan(Y);
+
+  if (XIsNaN && YIsNaN) {
+    return 0U;
+  }
+  if (XIsNaN || YIsNaN) {
+    return std::numeric_limits<uint64_t>::max();
+  }
+
+  constexpr StorageType SignMask = FPUtils<FloatType>::SignMask;
+
+  // Linearise FloatType values into an ordered unsigned space:
+  //  * The mapping is monotonic: a >= b if, and only if, map(a) >= map(b)
+  //  * The difference |map(a) − map(b)| equals the number of std::nextafter
+  //    steps between a and b within the same type
+  auto MapToOrderedUnsigned = [SignMask](FloatType Value) {
+    const StorageType Bits = FPUtils<FloatType>::getAsBits(Value);
+    return (Bits & SignMask) ? SignMask - (Bits - SignMask) : SignMask + Bits;
+  };
+
+  const StorageType MappedX = MapToOrderedUnsigned(X);
+  const StorageType MappedY = MapToOrderedUnsigned(Y);
+  return static_cast<uint64_t>(MappedX > MappedY ? MappedX - MappedY
+                                                 : MappedY - MappedX);
+}
 
 } // namespace testing
